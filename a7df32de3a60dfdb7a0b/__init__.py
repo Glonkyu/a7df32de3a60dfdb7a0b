@@ -2110,25 +2110,30 @@ if check_exists_by_xpath(two_fa_xpath, driver):
     # Tambahkan delay ekstra agar sistem punya waktu untuk memproses login
     sleep(5)
     # Tunggu hingga redirect ke halaman home
-    try:
-        WebDriverWait(driver, 15).until(EC.url_contains("/home"))
-        logging.info("[Twitter Login] Redirect ke halaman home berhasil.")
-    except Exception as e:
-        logging.error("Gagal mengalihkan ke halaman home setelah 2FA: %s", e)
+try:
+    WebDriverWait(driver, 15).until(EC.url_contains("/home"))
+    logging.info("[Twitter Login] Redirect ke halaman home berhasil.")
+except Exception as e:
+    logging.error("Gagal mengalihkan ke halaman home setelah 2FA: %s", e)
+
+# Jika sudah login atau tidak butuh 2FA
+logging.info("Verifikasi 2FA tidak diperlukan...")
+
+# Finalisasi login: arahkan ke halaman home
+target_home_url = "https://x.com/home"
+driver.get(target_home_url)
+sleep(random.uniform(1, 3))
+
+logging.info("[Twitter Login] Current URL after login = %s", driver.current_url)
+
+target_home = "https://x.com/home"
+target_home_bis = "https://twitter.com/home"
+
+if target_home in driver.current_url or target_home_bis in driver.current_url:
+    logging.info("[Twitter Login] Success!")
+    save_cookies(driver)
 else:
-    logging.info("Verifikasi 2FA tidak diperlukan...")
-
-
-        # Finalisasi login: arahkan ke halaman home
-        driver.get(target_home_url)
-        sleep(random.uniform(1, 1))
-        logging.info("[Twitter Login] Current URL after login = %s", str(driver.current_url))
-        if target_home in driver.current_url or target_home_bis in driver.current_url:
-            logging.info("[Twitter Login] Success!")
-            save_cookies(driver)
-    else:
-        logging.info("[Twitter] We are already logged in")
-
+    logging.info("[Twitter] We are already logged in")
 
 
 def is_within_timeframe_seconds(dt_str, timeframe_sec):
