@@ -2089,30 +2089,35 @@ def log_in(env=".env", wait=1.2):
         password_el.send_keys(Keys.RETURN)
         sleep(random.uniform(0, 1))
         
-        # Tunggu sebentar untuk pindah ke halaman verifikasi jika diperlukan
-        sleep(3)
-        # Handle verifikasi 2FA jika form muncul
-        if check_exists_by_xpath(two_fa_xpath, driver):
-            logging.info("[2FA] Kode verifikasi diminta, menunggu kode dari API...")
-            code_input = WebDriverWait(driver, 5).until(
-                EC.element_to_be_clickable((By.XPATH, two_fa_xpath))
-            )
-            code = get_2fa_code(email)
-            if code:
-                driver.execute_script("arguments[0].click();", code_input)
-                code_input.send_keys(code)
-                code_input.send_keys(Keys.ENTER)
-                logging.info(f"[2FA] Kode verifikasi {code} dimasukkan...")
-                sleep(3)
-            else:
-                logging.error(f"[2FA] Gagal mendapatkan kode 2FA untuk {email}.")
-                code_manual = input("[2FA] Masukkan kode secara manual: ")
-                driver.execute_script("arguments[0].click();", code_input)
-                code_input.send_keys(code_manual)
-                code_input.send_keys(Keys.ENTER)
-                sleep(3)
-        else:
-            logging.info("Verifikasi 2FA tidak diperlukan...")
+# Handle verifikasi 2FA jika form muncul
+if check_exists_by_xpath(two_fa_xpath, driver):
+    logging.info("[2FA] Kode verifikasi diminta, menunggu kode dari API...")
+    code_input = WebDriverWait(driver, 5).until(
+        EC.element_to_be_clickable((By.XPATH, two_fa_xpath))
+    )
+    code = get_2fa_code(email)
+    if code:
+        driver.execute_script("arguments[0].click();", code_input)
+        code_input.send_keys(code)
+        code_input.send_keys(Keys.ENTER)
+        logging.info(f"[2FA] Kode verifikasi {code} dimasukkan...")
+    else:
+        logging.error(f"[2FA] Gagal mendapatkan kode 2FA untuk {email}.")
+        code_manual = input("[2FA] Masukkan kode secara manual: ")
+        driver.execute_script("arguments[0].click();", code_input)
+        code_input.send_keys(code_manual)
+        code_input.send_keys(Keys.ENTER)
+    # Tambahkan delay ekstra agar sistem punya waktu untuk memproses login
+    sleep(5)
+    # Tunggu hingga redirect ke halaman home
+    try:
+        WebDriverWait(driver, 15).until(EC.url_contains("/home"))
+        logging.info("[Twitter Login] Redirect ke halaman home berhasil.")
+    except Exception as e:
+        logging.error("Gagal mengalihkan ke halaman home setelah 2FA: %s", e)
+else:
+    logging.info("Verifikasi 2FA tidak diperlukan...")
+
 
         # Finalisasi login: arahkan ke halaman home
         driver.get(target_home_url)
