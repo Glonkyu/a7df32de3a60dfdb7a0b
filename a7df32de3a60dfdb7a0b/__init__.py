@@ -2053,7 +2053,7 @@ def log_in(env=".env", wait=1.2):
         email_xpath = '//input[@autocomplete="username"]'
         password_xpath = '//input[@autocomplete="current-password"]'
         username_xpath = '//input[@data-testid="ocfEnterTextTextInput"]'
-        # XPath untuk input verifikasi 2FA. Perhatikan: pada kode contoh 2FA yang berhasil, input menggunakan name 'text'
+        # XPath untuk input verifikasi 2FA, sesuai contoh yang berhasil menggunakan atribut name 'text'
         two_fa_xpath = "//input[@name='text']"  
 
         sleep(3)
@@ -2089,51 +2089,47 @@ def log_in(env=".env", wait=1.2):
         password_el.send_keys(Keys.RETURN)
         sleep(random.uniform(0, 1))
         
-# Handle verifikasi 2FA jika form muncul
-if check_exists_by_xpath(two_fa_xpath, driver):
-    logging.info("[2FA] Kode verifikasi diminta, menunggu kode dari API...")
-    code_input = WebDriverWait(driver, 5).until(
-        EC.element_to_be_clickable((By.XPATH, two_fa_xpath))
-    )
-    code = get_2fa_code(email)
-    if code:
-        driver.execute_script("arguments[0].click();", code_input)
-        code_input.send_keys(code)
-        code_input.send_keys(Keys.ENTER)
-        logging.info(f"[2FA] Kode verifikasi {code} dimasukkan...")
+        # Tunggu sebentar untuk pindah ke halaman verifikasi jika diperlukan
+        sleep(3)
+        # Handle verifikasi 2FA jika form muncul
+        if check_exists_by_xpath(two_fa_xpath, driver):
+            logging.info("[2FA] Kode verifikasi diminta, menunggu kode dari API...")
+            code_input = WebDriverWait(driver, 5).until(
+                EC.element_to_be_clickable((By.XPATH, two_fa_xpath))
+            )
+            code = get_2fa_code(email)
+            if code:
+                driver.execute_script("arguments[0].click();", code_input)
+                code_input.send_keys(code)
+                code_input.send_keys(Keys.ENTER)
+                logging.info(f"[2FA] Kode verifikasi {code} dimasukkan...")
+            else:
+                logging.error(f"[2FA] Gagal mendapatkan kode 2FA untuk {email}.")
+                code_manual = input("[2FA] Masukkan kode secara manual: ")
+                driver.execute_script("arguments[0].click();", code_input)
+                code_input.send_keys(code_manual)
+                code_input.send_keys(Keys.ENTER)
+            # Tambahkan delay ekstra agar sistem punya waktu untuk memproses login
+            sleep(5)
+            # Tunggu hingga redirect ke halaman home
+            try:
+                WebDriverWait(driver, 15).until(EC.url_contains("/home"))
+                logging.info("[Twitter Login] Redirect ke halaman home berhasil.")
+            except Exception as e:
+                logging.error("Gagal mengalihkan ke halaman home setelah 2FA: %s", e)
+        else:
+            logging.info("Verifikasi 2FA tidak diperlukan...")
+
+        # Finalisasi login: arahkan ke halaman home
+        driver.get(target_home_url)
+        sleep(random.uniform(1, 1))
+        logging.info("[Twitter Login] Current URL after login = %s", str(driver.current_url))
+        if target_home in driver.current_url or target_home_bis in driver.current_url:
+            logging.info("[Twitter Login] Success!")
+            save_cookies(driver)
     else:
-        logging.error(f"[2FA] Gagal mendapatkan kode 2FA untuk {email}.")
-        code_manual = input("[2FA] Masukkan kode secara manual: ")
-        driver.execute_script("arguments[0].click();", code_input)
-        code_input.send_keys(code_manual)
-        code_input.send_keys(Keys.ENTER)
-    # Tambahkan delay ekstra agar sistem punya waktu untuk memproses login
-    sleep(5)
-    # Tunggu hingga redirect ke halaman home
-try:
-    WebDriverWait(driver, 15).until(EC.url_contains("/home"))
-    logging.info("[Twitter Login] Redirect ke halaman home berhasil.")
-except Exception as e:
-    logging.error("Gagal mengalihkan ke halaman home setelah 2FA: %s", e)
+        logging.info("[Twitter] We are already logged in")
 
-# Jika sudah login atau tidak butuh 2FA
-logging.info("Verifikasi 2FA tidak diperlukan...")
-
-# Finalisasi login: arahkan ke halaman home
-target_home_url = "https://x.com/home"
-driver.get(target_home_url)
-sleep(random.uniform(1, 3))
-
-logging.info("[Twitter Login] Current URL after login = %s", driver.current_url)
-
-target_home = "https://x.com/home"
-target_home_bis = "https://twitter.com/home"
-
-if target_home in driver.current_url or target_home_bis in driver.current_url:
-    logging.info("[Twitter Login] Success!")
-    save_cookies(driver)
-else:
-    logging.info("[Twitter] We are already logged in")
 
 
 def is_within_timeframe_seconds(dt_str, timeframe_sec):
