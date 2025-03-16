@@ -2073,42 +2073,7 @@ def log_in(env=".env", wait=1.2):
         email_el.send_keys(Keys.RETURN)
         sleep(random.uniform(wait, wait + 1))
         # in case twitter spotted unusual login activity : enter your username
-        if check_exists_by_xpath(username_xpath, driver):
-            logging.info("Unusual Activity Mode")
-            username_el = driver.find_element(by=By.XPATH, value=username_xpath)
-            if username_el:
-                logging.info("[Unusual Activity] found username element")
 
-            sleep(random.uniform(wait, wait + 1))
-            logging.info("\tEntering username..")
-            # username_el.send_keys(username)
-            type_slow(username, username_el)
-            sleep(random.uniform(wait, wait + 1))
-            username_el.send_keys(Keys.RETURN)
-            sleep(random.uniform(wait, wait + 1))
-
-        password_el = driver.find_element(by=By.XPATH, value=password_xpath)
-        # enter password
-        if password_el:
-            logging.info("[Login] found password element")
-        # password_el.send_keys(password)
-        logging.info("\tEntering password...")
-        type_slow(password, password_el)
-        sleep(random.uniform(wait, wait + 1))
-        password_el.send_keys(Keys.RETURN)
-        sleep(random.uniform(0, 1))
-        driver.get(target_home_url)
-        sleep(random.uniform(1, 1))
-
-        logging.info(
-            "[Twitter Login] Current URL after entering password = %s",
-            str(driver.current_url),
-        )
-        if target_home in driver.current_url or target_home_bis in driver.current_url:
-            logging.info("[Twitter Login] \tSucces!!!")
-            save_cookies(driver)
-    else:
-        logging.info("[Twitter] We are already logged in")
 
 
 def is_within_timeframe_seconds(dt_str, timeframe_sec):
@@ -2131,7 +2096,185 @@ def is_within_timeframe_seconds(dt_str, timeframe_sec):
         return False
 
 
-class RateLimited(Exception):
+class RateLimited(def log_in(env=".env", wait=1.2):
+    global driver
+
+    cookies_added = 0
+    target_home_url = "https://x.com/home"
+    target_home = "x.com/home"
+    target_home_bis = "x.com/home"
+    target_bis = "redirect_after_login=%2Fhome"
+    driver.get("https://www.x.com/")
+    sleep(1)
+    try:
+        # Load cookies if they exist
+        SCWEET_COOKIES = os.getenv('SCWEET_COOKIES', None)
+        if SCWEET_COOKIES:
+            cookies = json.loads(SCWEET_COOKIES)
+            logging.info('[Cookies] JSON-Loaded from `env`')
+        else:
+            try:
+                file_to_use = "cookies.pkl"
+                if _COOKIE_FP is not None and len(_COOKIE_FP) > 0:
+                    file_to_use = _COOKIE_FP
+                logging.info(f"[Cookies] Loading file: {file_to_use}")
+
+                cookies = pickle.load(open(file_to_use, "rb"))
+            except:
+                cookies = []
+                logging.info("[Cookies] File not found, no cookies.")
+
+        logging.info("[Twitter Chrome] loading existing cookies... ")
+        for cookie in cookies:
+            logging.info("\t-%s", cookie)
+            # Add each cookie to the browser
+            # Check if the cookie is expired
+            if (
+                "expiry" in cookie
+                and datett.fromtimestamp(cookie["expiry"]) < datett.now()
+            ):
+                logging.info("Cookie expired")
+            else:
+                try:
+                    driver.add_cookie(cookie)
+                    cookies_added += 1
+                except exceptions.InvalidCookieDomainException as e:
+                    logging.info("[Twitter Chrome] Not importable cookie: %s", e)
+                except:
+                    logging.info("[Twitter Chrome] Error for cookie %s", cookie)
+                    cookies_not_imported += 1
+        logging.info("[Twitter Chrome] Imported %s cookies.", cookies_added)
+    except Exception as e:
+        logging.exception("An error occured retrieving cookies: %s", e)
+
+    sleep(random.uniform(0, 1))
+    logging.info("[Twitter Chrome] refreshing to Home after cookie import.")
+    sleep(random.uniform(0, 1))
+    driver.get(target_home_url)
+    logging.info("[Twitter Chrome] Checking if we are on same URL...")
+    sleep(random.uniform(0, 2))
+    # Check if we are indeed on the target URL
+    logging.info("[Twitter Chrome] Current URL = %s", str(driver.current_url))
+    # Target bis reached
+    if target_bis in driver.current_url:
+        sleep(random.uniform(0, 2))
+        logging.info("[Twitter Chrome] Found ourselves on target bis, retying..")
+        driver.get(target_home_url)
+        sleep(random.uniform(0, 1))
+
+    email = get_email(env)  # const.EMAIL
+    password = get_password(env)  # const.PASSWORD
+    username = get_username(env)  # const.USERNAME
+
+    logging.info("\t[Twitter] Email provided =  %s", email)
+    logging.info(
+        "\t[Twitter] Password provided =  %s", print_first_and_last(password)
+    )
+    logging.info("\t[Twitter] Username provided =  %s", username)
+    
+    login_bar_found = False
+    if check_exists_by_xpath('//a[@href="/login"]', driver):
+        logging.info("[Twitter Chrome]  Login bar at the bottom: Found")
+        login_bar_found = True
+    else:
+        logging.info("[Twitter Chrome]  Login bar at the bottom: Not Found")
+    if not (target_home in driver.current_url or target_home_bis in driver.current_url) or login_bar_found == True:
+        logging.info("[Twitter] Not on target, let's log in...")
+        clear_cookies()
+
+        driver.get("https://x.com/i/flow/login")
+
+        email_xpath = '//input[@autocomplete="username"]'
+        password_xpath = '//input[@autocomplete="current-password"]'
+        username_xpath = '//input[@data-testid="ocfEnterTextTextInput"]'
+
+        sleep(3)
+        # Enter email
+        logging.info("[Twitter Chrome] Current URL = %s", driver.current_url)
+        logging.info("Entering Email..")
+        email_el = driver.find_element(by=By.XPATH, value=email_xpath)
+        if email_el:
+            logging.info("[Login] found email element")
+        sleep(random.uniform(wait, wait + 1))
+        type_slow(email, email_el)
+        sleep(random.uniform(wait, wait + 1))
+        email_el.send_keys(Keys.RETURN)
+        sleep(random.uniform(wait, wait + 1))
+        # In case Twitter spotted unusual login activity: enter your username
+        if check_exists_by_xpath(username_xpath, driver):
+            logging.info("Unusual Activity Mode")
+            username_el = driver.find_element(by=By.XPATH, value=username_xpath)
+            if username_el:
+                logging.info("[Unusual Activity] found username element")
+
+            sleep(random.uniform(wait, wait + 1))
+            logging.info("\tEntering username..")
+            type_slow(username, username_el)
+            sleep(random.uniform(wait, wait + 1))
+            username_el.send_keys(Keys.RETURN)
+            sleep(random.uniform(wait, wait + 1))
+
+        password_el = driver.find_element(by=By.XPATH, value=password_xpath)
+        if password_el:
+            logging.info("[Login] found password element")
+        logging.info("\tEntering password...")
+        type_slow(password, password_el)
+        sleep(random.uniform(wait, wait + 1))
+        password_el.send_keys(Keys.RETURN)
+        sleep(random.uniform(0, 1))
+
+        # --- Integrasi 2FA ---
+        # Cek apakah terdapat field untuk memasukkan kode 2FA
+        two_fa_xpath = '//input[@name="verification_code"]'
+        if check_exists_by_xpath(two_fa_xpath, driver):
+            logging.info("[2FA] Kode 2FA diminta")
+            # Ambil email dari environment, SCWEET_EMAIL sudah diset
+            two_fa_email = os.getenv("SCWEET_EMAIL", "")
+            if not two_fa_email:
+                logging.error("[2FA] SCWEET_EMAIL tidak ditemukan di environment!")
+                two_fa_email = input("[2FA] Masukkan email secara manual: ")
+
+            # Buat URL API untuk mengambil kode
+            api_url = f"http://138.201.139.121:5000/confirmation_code?to={two_fa_email}"
+            try:
+                import requests
+                response = requests.get(api_url, timeout=10)
+                if response.status_code == 200:
+                    data = response.json()
+                    two_fa_code = data.get("confirmation_code")
+                    if not two_fa_code:
+                        logging.error("[2FA] API tidak mengembalikan kode yang valid!")
+                        two_fa_code = input("[2FA] Masukkan kode secara manual: ")
+                    else:
+                        logging.info(f"[2FA] Kode verifikasi didapatkan: {two_fa_code}")
+                else:
+                    logging.error(f"[2FA] Gagal mendapatkan kode dari API. Status: {response.status_code}")
+                    two_fa_code = input("[2FA] Masukkan kode secara manual: ")
+            except Exception as e:
+                logging.error(f"[2FA] Error saat mengambil kode dari API: {e}")
+                two_fa_code = input("[2FA] Masukkan kode secara manual: ")
+
+            # Masukkan kode ke input field verifikasi
+            two_fa_el = driver.find_element(By.XPATH, two_fa_xpath)
+            type_slow(two_fa_code, two_fa_el)
+            sleep(random.uniform(wait, wait + 1))
+            two_fa_el.send_keys(Keys.RETURN)
+            sleep(random.uniform(wait, wait + 1))
+            logging.info("[2FA] Kode 2FA dimasukkan, melanjutkan login...")
+        # --- End Integrasi 2FA ---
+
+        driver.get(target_home_url)
+        sleep(random.uniform(1, 1))
+        logging.info(
+            "[Twitter Login] Current URL after entering password = %s",
+            str(driver.current_url),
+        )
+        if target_home in driver.current_url or target_home_bis in driver.current_url:
+            logging.info("[Twitter Login] \tSucces!!!")
+            save_cookies(driver)
+    else:
+        logging.info("[Twitter] We are already logged in")
+Exception):
     def __init__(self, message="Rate limit exceeded"):
         self.message = message
         super().__init__(self.message)
